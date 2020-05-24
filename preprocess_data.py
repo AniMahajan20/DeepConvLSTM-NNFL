@@ -1,4 +1,4 @@
-__author__ = 'fjordonez'
+
 
 import os
 import zipfile
@@ -10,10 +10,10 @@ import pickle as cp
 from io import BytesIO
 from pandas import Series
 
-# Hardcoded number of sensor channels employed in the OPPORTUNITY challenge
+# Number of sensor channels used in the OPPORTUNITY challenge
 NB_SENSOR_CHANNELS = 113
 
-# Hardcoded names of the files defining the OPPORTUNITY challenge data. As named in the original data.
+# Names of the files defining the OPPORTUNITY challenge data. As named in the original data.
 OPPORTUNITY_DATA_FILES = ['OpportunityUCIDataset/dataset/S1-Drill.dat',
                           'OpportunityUCIDataset/dataset/S1-ADL1.dat',
                           'OpportunityUCIDataset/dataset/S1-ADL2.dat',
@@ -34,8 +34,7 @@ OPPORTUNITY_DATA_FILES = ['OpportunityUCIDataset/dataset/S1-Drill.dat',
                           'OpportunityUCIDataset/dataset/S3-ADL5.dat'
                           ]
 
-# Hardcoded thresholds to define global maximums and minimums for every one of the 113 sensor channels employed in the
-# OPPORTUNITY challenge
+# Global maximums and minimums for each of the 113 sensor channels used in the OPPORTUNITY challenge
 MAX_THRESHOLDS = [3000,   3000,   3000,   3000,   3000,   3000,   3000,   3000,   3000,
                        3000,   3000,   3000,   3000,   3000,   3000,   3000,   3000,   3000,
                        3000,   3000,   3000,   3000,   3000,   3000,   3000,   3000,   3000,
@@ -66,14 +65,14 @@ MIN_THRESHOLDS = [-3000,  -3000,  -3000,  -3000,  -3000,  -3000,  -3000,  -3000,
 
 
 def select_columns(data):
-    """Selection of the 113 columns employed in the OPPORTUNITY challenge
-    :param data: numpy integer matrix
+    """Selection of the 113 columns used in the OPPORTUNITY challenge
+    :par data: numpy integer matrix
         Sensor data (all features)
     :return: numpy integer matrix
         Selection of features
     """
 
-    #                     included-excluded
+    #Channels to be excluded
     features_delete = np.arange(46, 50)
     features_delete = np.concatenate([features_delete, np.arange(59, 63)])
     features_delete = np.concatenate([features_delete, np.arange(72, 76)])
@@ -86,12 +85,12 @@ def select_columns(data):
 
 def norm(data, max_list, min_list):
     """Normalizes all sensor channels
-    :param data: numpy integer matrix
+    :par data: numpy integer matrix
         Sensor data
-    :param max_list: numpy integer array
-        Array containing maximums values for every one of the 113 sensor channels
-    :param min_list: numpy integer array
-        Array containing minimum values for every one of the 113 sensor channels
+    :par max_list: numpy integer array
+        Array containing maximum values for each of 113 sensor channels
+    :par min_list: numpy integer array
+        Array containing minimum values for each of 113 sensor channels
     :return:
         Normalized sensor data
     """
@@ -99,20 +98,20 @@ def norm(data, max_list, min_list):
     diff = max_list - min_list
     for i in np.arange(data.shape[1]):
         data[:, i] = (data[:, i]-min_list[i])/diff[i]
-    #     Checking the boundaries
+
     data[data > 1] = 0.99
     data[data < 0] = 0.00
     return data
 
 
 def divide_x_y(data, label):
-    """Segments each sample into features and label
-    :param data: numpy integer matrix
+    """Breaks each sample into features and label
+    :par data: numpy integer matrix
         Sensor data
-    :param label: string, ['gestures' (default), 'locomotion']
+    :par label: string, ['gestures' (default), 'locomotion']
         Type of activities to be recognized
     :return: numpy integer matrix, numpy integer array
-        Features encapsulated into a matrix and labels as an array
+        Features in a matrix and labels in an array
     """
 
     data_x = data[:, 1:114]
@@ -128,12 +127,12 @@ def divide_x_y(data, label):
 
 def adjust_labels(data_y, label):
     """Transforms original labels into the range [0, nb_labels-1]
-    :param data_y: numpy integer array
+    :par data_y: numpy integer array
         Sensor labels
-    :param label: string, ['gestures' (default), 'locomotion']
+    :par label: string, ['gestures' (default), 'locomotion']
         Type of activities to be recognized
     :return: numpy integer array
-        Modified sensor labels
+        Transformed sensor labels
     """
 
     if label == 'locomotion':  # Labels for locomotion are adjusted
@@ -161,9 +160,9 @@ def adjust_labels(data_y, label):
 
 
 def check_data(data_set):
-    """Try to access to the file and checks if dataset is in the data directory
-       In case the file is not found try to download it from original location
-    :param data_set:
+    """Makes sure if the dataset is in the data directory
+       If the file is not found try to download it from UCI repository
+    :par data_set:
             Path with original OPPORTUNITY zip file
     :return:
     """
@@ -193,18 +192,18 @@ def check_data(data_set):
 
 def process_dataset_file(data, label):
     """Function defined as a pipeline to process individual OPPORTUNITY files
-    :param data: numpy integer matrix
-        Matrix containing data samples (rows) for every sensor channel (column)
-    :param label: string, ['gestures' (default), 'locomotion']
+    :par data: numpy integer matrix
+        Matrix containing sensor data
+    :par label: string, ['gestures' (default), 'locomotion']
         Type of activities to be recognized
     :return: numpy integer matrix, numy integer array
-        Processed sensor data, segmented into features (x) and labels (y)
+        Processed sensor data, divided into features (x) and labels (y)
     """
 
-    # Select correct columns
+    # Select only required columns
     data = select_columns(data)
 
-    # Colums are segmentd into features and labels
+    # Colums are divided into features and labels
     data_x, data_y =  divide_x_y(data, label)
     data_y = adjust_labels(data_y, label)
     data_y = data_y.astype(int)
@@ -212,10 +211,10 @@ def process_dataset_file(data, label):
     # Perform linear interpolation
     data_x = np.array([Series(i).interpolate() for i in data_x.T]).T
 
-    # Remaining missing data are converted to zero
+    # Remaining missing data is replaced with 0
     data_x[np.isnan(data_x)] = 0
 
-    # All sensor channels are normalized
+    # Normalize sensor channels
     data_x = norm(data_x, MAX_THRESHOLDS, MIN_THRESHOLDS)
 
     return data_x, data_y
@@ -223,13 +222,12 @@ def process_dataset_file(data, label):
 
 def generate_data(dataset, target_filename, label):
     """Function to read the OPPORTUNITY challenge raw data and process all sensor channels
-    :param dataset: string
+    :par dataset: string
         Path with original OPPORTUNITY zip file
-    :param target_filename: string
+    :par target_filename: string
         Processed file
-    :param label: string, ['gestures' (default), 'locomotion']
-        Type of activities to be recognized. The OPPORTUNITY dataset includes several annotations to perform
-        recognition modes of locomotion/postures and recognition of sporadic gestures.
+    :par label: string, ['gestures' (default), 'locomotion']
+        Type of activities to be recognized.
     """
 
     data_dir = check_data(dataset)
@@ -249,9 +247,9 @@ def generate_data(dataset, target_filename, label):
         except KeyError:
             print ("ERROR: Did not find {0} in zip file".format(filename))
 
-    # Dataset is segmented into train and test
+    # Dataset is divided into train and test
     nb_training_samples = 557963
-    # The first 18 OPPORTUNITY data files define the traning dataset, comprising 557963 samples
+    # The first 18 OPPORTUNITY data files are used for the traning dataset, having 557963 samples
     X_train, y_train = data_x[:nb_training_samples,:], data_y[:nb_training_samples]
     X_test, y_test = data_x[nb_training_samples:,:], data_y[nb_training_samples:]
 
